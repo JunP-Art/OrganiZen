@@ -1,9 +1,15 @@
 import { GoogleGenAI } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getAiClient() {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is missing");
+  }
+  return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+}
 
 export async function askMochi(message: string, history: Array<{role: string, text: string}>) {
   try {
+    const ai = getAiClient();
     const formattedHistory = history.map(m => ({
       role: m.role as 'user' | 'model',
       parts: [{ text: m.text }]
@@ -36,6 +42,7 @@ export async function askMochi(message: string, history: Array<{role: string, te
 
 export async function divideTaskAI(taskTitle: string): Promise<string[]> {
   try {
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [
