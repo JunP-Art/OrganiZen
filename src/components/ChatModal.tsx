@@ -4,7 +4,7 @@ import { askMochi } from '../services/geminiService';
 import { cn } from '../lib/utils';
 
 export function ChatModal() {
-  const { isChatOpen, setIsChatOpen, bubbleColor, mochiFaceUrl } = useOrganiZen();
+  const { isChatOpen, setIsChatOpen, bubbleColor, mochiFaces } = useOrganiZen();
   const [messages, setMessages] = useState<{role: string, text: string}[]>([
     { role: 'model', text: "¡Hola! Soy Mochi. *sniff sniff* ¿En qué te puedo ayudar hoy a organizar tu mente?" }
   ]);
@@ -38,7 +38,7 @@ export function ChatModal() {
          <div className="px-6 py-4 border-b border-surface-variant flex justify-between items-center bg-surface-bright">
            <div className="flex items-center gap-3">
              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center p-0.5 border border-white transition-all duration-500", bubbleColor)}>
-               <img src={mochiFaceUrl} alt="Mochi" className="w-full h-full object-cover rounded-full transition-opacity duration-300"/>
+               <img src={mochiFaces.happy2} alt="Mochi" className="w-full h-full object-cover rounded-full transition-opacity duration-300"/>
              </div>
              <div>
                <h3 className="font-title-sm text-primary font-semibold text-[16px]">Mochi</h3>

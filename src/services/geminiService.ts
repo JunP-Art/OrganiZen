@@ -16,7 +16,7 @@ export async function askMochi(message: string, history: Array<{role: string, te
     }));
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: [
         {
           role: 'user',
@@ -44,7 +44,7 @@ export async function divideTaskAI(taskTitle: string): Promise<string[]> {
   try {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: [
         {
           role: 'user',
@@ -57,6 +57,12 @@ export async function divideTaskAI(taskTitle: string): Promise<string[]> {
     return JSON.parse(cleanText);
   } catch (e) {
     console.error("AI breakdown error", e);
-    return ["Organizar el espacio", "Iniciar la tarea principal", "Revisar detalles finales"]; // Fallback
+    // Generic subtasks as fallback
+    return [
+      `Fase 1: Preparar ${taskTitle}`,
+      "Establecer un temporizador de 5 minutos",
+      "Realizar el primer paso pequeño",
+      "Revisar el progreso logrado"
+    ];
   }
 }

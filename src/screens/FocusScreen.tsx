@@ -8,7 +8,7 @@ interface FocusScreenProps {
 }
 
 export function FocusScreen({ onStart }: FocusScreenProps) {
-  const { tasks, focusedTaskId, replaceSubtasks, timerTotalTime, setTimerTotalTime, setTimerTimeLeft, setIsTimerRunning, setIsChatOpen, bubbleColor, toggleSubtask, mochiFaceUrl } = useOrganiZen();
+  const { tasks, focusedTaskId, replaceSubtasks, timerTotalTime, setTimerTotalTime, setTimerTimeLeft, setIsTimerRunning, setIsChatOpen, bubbleColor, toggleSubtask, mochiFaces, mochiAnimatedFace } = useOrganiZen();
 
   const [isDividing, setIsDividing] = useState(false);
 
@@ -74,7 +74,7 @@ export function FocusScreen({ onStart }: FocusScreenProps) {
         <div className="relative w-48 h-48 flex items-center justify-center animate-pulse" style={{animationDuration: '4s'}}>
           <div className="absolute inset-0 bg-indigo-100/30 rounded-full blur-2xl"></div>
           <img 
-            src="https://lh3.googleusercontent.com/aida/ADBb0ujv1R7NmtIqJ5Ryq_mzVh7nIitKlU7dxD_zAtAESA6bI0T9FunnHkofL6RbdKC8F--uFp6INPrUfPw5cBZfFMMrx2tUBheM1_Qp8xzQq_QiLxa7zQiQN7wDC7OIaahLGMbNyL8Xh_s9-OsMIQD8ufA5Lxb5BA1IrLfMqzbicD4DIOg_eaBFc2xptYBPje8XsDoyTH1FTEBnGlZ2pEYLr5EHzhaw2H16J6EPXuQ_9MhfYQdV0UpXdM1uplFiZl7bRQdWbLRp82mo" 
+            src={mochiFaces.neutral} 
             alt="Mochi Normal State" 
             className="w-40 h-40 object-contain drop-shadow-lg relative z-10"
           />
@@ -201,9 +201,9 @@ export function FocusScreen({ onStart }: FocusScreenProps) {
         <div className="flex justify-end pr-2">
           <div className={cn("w-16 h-16 rounded-full soft-elevation p-0.5 overflow-hidden border border-white transition-all duration-500", bubbleColor)}>
             <img 
-              src={mochiFaceUrl} 
-              alt="Mochi Happy" 
-              className="w-full h-full object-cover rounded-full"
+              src={mochiAnimatedFace} 
+              alt="Mochi Animated" 
+              className="w-full h-full object-cover rounded-full transition-opacity duration-300"
             />
           </div>
         </div>

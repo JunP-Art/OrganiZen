@@ -9,7 +9,8 @@ export function ZenScreen() {
     notificationsEnabled, setNotificationsEnabled,
     theme, setTheme,
     bubbleColor, setBubbleColor,
-    setIsChatOpen
+    setIsChatOpen,
+    mochiFaces
   } = useOrganiZen();
 
   // Request haptic feedback whenever toggled on
@@ -29,8 +30,8 @@ export function ZenScreen() {
           <div className="absolute inset-0 bg-primary-container/20 blur-3xl rounded-full scale-125"></div>
           <div className="relative w-48 h-48 bg-surface-container-lowest rounded-full flex items-center justify-center shadow-[0_20px_50px_rgba(165,180,252,0.2)] overflow-hidden">
             <img 
-              src="https://lh3.googleusercontent.com/aida/ADBb0uhkbTjRmFtHKuQ-3gQePqy2qhYrQY1zAeS3YpfJU9MykUQOTDVFxC43eqgth1LapxXQ9a1elDCTzM4rMCGrRes-9VYjFihMfhOEzVTR4sov6tuUfn-bTZ8l07nRwxJX8chlYgrpkIQLBrHZnnjBEygSgIkFHiFcnM2MizcP1Rj_sBAnYkxRwoub6yUJJ4us92pMITgnFsAj5SjbtqXEefrhXzVFk2YNYE62aqH3yifLAzbnJ4p61-2ESFsBxi4vhBoHwK8NqjuDIw" 
-              alt="Mochi closed eyes" 
+              src={mochiFaces.happy1} 
+              alt="Mochi happy" 
               className="w-40 h-40 object-contain"
             />
           </div>
@@ -203,16 +204,31 @@ export function ZenScreen() {
             <button onClick={() => setBubbleColor('bg-rose-100')} className={cn("w-8 h-8 rounded-full bg-rose-100 border-2 transition-all", bubbleColor === 'bg-rose-100' ? "border-rose-400 ring-offset-2 ring-2 ring-transparent" : "border-transparent hover:ring-2 ring-rose-200 ring-offset-2")}></button>
             <button onClick={() => setBubbleColor('bg-emerald-100')} className={cn("w-8 h-8 rounded-full bg-emerald-100 border-2 transition-all", bubbleColor === 'bg-emerald-100' ? "border-emerald-400 ring-offset-2 ring-2 ring-transparent" : "border-transparent hover:ring-2 ring-emerald-200 ring-offset-2")}></button>
             <button onClick={() => setBubbleColor('bg-amber-100')} className={cn("w-8 h-8 rounded-full bg-amber-100 border-2 transition-all", bubbleColor === 'bg-amber-100' ? "border-amber-400 ring-offset-2 ring-2 ring-transparent" : "border-transparent hover:ring-2 ring-amber-200 ring-offset-2")}></button>
+            <button onClick={() => setBubbleColor('bg-purple-100')} className={cn("w-8 h-8 rounded-full bg-purple-200 border-2 transition-all", bubbleColor === 'bg-purple-100' ? "border-purple-400 ring-offset-2 ring-2 ring-transparent" : "border-transparent hover:ring-2 ring-purple-200 ring-offset-2")}></button>
           </div>
-          <span className="font-label-caps text-on-surface-variant tracking-wider">4 colores</span>
+          <span className="font-label-caps text-on-surface-variant tracking-wider">5 colores</span>
         </div>
+      </section>
+
+      {/* Logout */}
+      <section className="pt-4">
+        <button 
+          onClick={async () => {
+             const { logout } = await import('../services/firebase');
+             logout();
+          }}
+          className="w-full bg-surface-container-low text-error px-6 py-4 rounded-[32px] font-label-large hover:bg-error/10 transition-colors shadow-sm flex items-center justify-center gap-2"
+        >
+          <span className="material-symbols-outlined">logout</span>
+          Cerrar Sesión
+        </button>
       </section>
 
       {/* Decorative Focus Image */}
       <section className="pt-4">
         <div className="w-full h-48 rounded-[32px] overflow-hidden relative group shadow-lg">
           <img 
-            src="https://lh3.googleusercontent.com/aida/ADBb0uj7Qw3shbJCxvOovLpBTQj5XlLqIyW5La1eKlWmJMEEj3y_XlTCMXW7jSMQ--RNM-HXOrN3cDsRuQzsSxo2Nu9o_ucDSeX9sxnbs-x4-5H6XVhqskGTgC_qxkEv9qxA5S986LVhmJkdSP5YXlg4EkXS1fYxXQqbz6uODAC1pKVS2vB2Pr_mV5UzZGCgkPh4jhh9GwMJR2efifqd8kTz89Mqq0u7qXaD4X2Bd8tkkWkC_xrv9XpLX45lxnBxdNwdlsOiFesJpcziCw" 
+            src={mochiFaces.happy2} 
             alt="Zen Background" 
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />

@@ -3,7 +3,7 @@ import { useOrganiZen, Task } from '../context/OrganiZenContext';
 import { cn } from '@/src/lib/utils';
 
 export function TasksScreen({ onNavigate }: { onNavigate: (tab: 'tasks'|'focus'|'timer'|'zen') => void }) {
-  const { tasks, searchQuery, setSearchQuery, completeTask, toggleSubtask, setFocusedTaskId, addTask, setIsChatOpen, bubbleColor, mochiFaceUrl } = useOrganiZen();
+  const { tasks, searchQuery, setSearchQuery, completeTask, toggleSubtask, setFocusedTaskId, addTask, setIsChatOpen, bubbleColor, mochiFaces, mochiAnimatedFace } = useOrganiZen();
   
   const [addingTask, setAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -222,9 +222,9 @@ export function TasksScreen({ onNavigate }: { onNavigate: (tab: 'tasks'|'focus'|
           <div className="flex justify-end pr-2">
             <div className={cn("w-16 h-16 rounded-full soft-elevation p-0.5 overflow-hidden border border-white transition-all duration-500", bubbleColor)}>
               <img 
-                src={mochiFaceUrl} 
-                alt="Mochi Happy" 
-                className="w-full h-full object-cover rounded-full"
+                src={mochiAnimatedFace} 
+                alt="Mochi Animated" 
+                className="w-full h-full object-cover rounded-full transition-opacity duration-300"
               />
             </div>
           </div>

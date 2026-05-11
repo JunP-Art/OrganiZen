@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { auth, db, handleFirestoreError, OperationType } from '../services/firebase';
+import { collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, query, serverTimestamp } from 'firebase/firestore';
 
 export interface Subtask {
   id: string;
@@ -20,7 +22,7 @@ export interface Task {
 
 interface OrganiZenContextType {
   tasks: Task[];
-  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>; // Provided for compatibility, though not explicitly needed for the backend unless manipulated
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   focusedTaskId: string | null;
@@ -51,72 +53,20 @@ interface OrganiZenContextType {
   isChatOpen: boolean;
   setIsChatOpen: (v: boolean) => void;
   replaceSubtasks: (taskId: string, subtaskTitles: string[]) => void;
-  mochiFaceUrl: string;
-}
-
-const defaultTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Limpiar la cocina',
-    subtitle: 'Mantén tu espacio tranquilo',
-    category: 'Ahora',
-    completed: false,
-    timeEstimate: 15,
-    subtasks: [
-      { id: 's1', title: 'Guardar los platos limpios', completed: false },
-      { id: 's2', title: 'Limpiar la mesa', completed: false },
-      { id: 's3', title: 'Barrer el suelo', completed: false }
-    ]
-  },
-  {
-    id: '2',
-    title: 'Hacer la cama',
-    subtitle: 'Rutina de mañana',
-    category: 'Hoy',
-    icon: 'bed',
-    iconColor: 'text-primary',
-    completed: false,
-    timeEstimate: 5
-  },
-  {
-    id: '3',
-    title: 'Llamar al médico',
-    subtitle: 'Cita pendiente',
-    category: 'Hoy',
-    icon: 'medical_services',
-    iconColor: 'text-secondary',
-    completed: false,
-    timeEstimate: 10
-  },
-  {
-    id: '4',
-    title: 'Comprar pan',
-    subtitle: 'Lista de compras',
-    category: 'Hoy',
-    icon: 'shopping_basket',
-    iconColor: 'text-tertiary',
-    completed: false,
-    timeEstimate: 20
-  }
-];
-
-// Provide 12 dummy tasks for Semana to reflect the "12" counter in the UI.
-for (let i=0; i<12; i++) {
-  defaultTasks.push({
-    id: `w${i}`,
-    title: `Tarea clave de la semana ${i+1}`,
-    category: 'Semana',
-    completed: false,
-    timeEstimate: 30
-  });
+  mochiFaces: {
+    neutral: string;
+    happy1: string;
+    happy2: string;
+  };
+  mochiAnimatedFace: string;
 }
 
 const OrganiZenContext = createContext<OrganiZenContextType | undefined>(undefined);
 
 export function OrganiZenProvider({ children }: { children: React.ReactNode }) {
-  const [tasks, setTasks] = useState<Task[]>(defaultTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [focusedTaskId, setFocusedTaskId] = useState<string | null>('1');
+  const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   
   const [timerTotalTime, setTimerTotalTime] = useState(5 * 60);
   const [timerTimeLeft, setTimerTimeLeft] = useState(5 * 60);
@@ -127,26 +77,26 @@ export function OrganiZenProvider({ children }: { children: React.ReactNode }) {
   const [soundsEnabled, setSoundsEnabled] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [theme, setTheme] = useState('Predeterminado');
-
-  const [bubbleColor, setBubbleColor] = useState('bg-indigo-100');
+  const [theme, setThemeState] = useState('Predeterminado');
+  const [bubbleColor, setBubbleColorState] = useState('bg-indigo-100');
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const MOCHI_FACES = [
-    // Neutral (Focus)
-    "https://lh3.googleusercontent.com/aida/ADBb0ujv1R7NmtIqJ5Ryq_mzVh7nIitKlU7dxD_zAtAESA6bI0T9FunnHkofL6RbdKC8F--uFp6INPrUfPw5cBZfFMMrx2tUBheM1_Qp8xzQq_QiLxa7zQiQN7wDC7OIaahLGMbNyL8Xh_s9-OsMIQD8ufA5Lxb5BA1IrLfMqzbicD4DIOg_eaBFc2xptYBPje8XsDoyTH1FTEBnGlZ2pEYLr5EHzhaw2H16J6EPXuQ_9MhfYQdV0UpXdM1uplFiZl7bRQdWbLRp82mo",
-    // Feliz 1 (Bubble)
-    "https://lh3.googleusercontent.com/aida/ADBb0uhNHSjl0Vvub7voET0s9tWzu9yI94QNVlg4LrrsqaBQVwf-sqpohlliOfyOBSSKxM9cwaQDkEm8xo4v1LEWRASo_OpG0Nl1Qey3Hl3iBskvo1vmnSoyg9D6H1RVSK6cTFBxRAegtSrM4aTE5NiOffLOmMJj41dweOeDWVliOzL2vWOtwBkWnmORM4CreJ82no2pygmgmg0zVjLmTCASGbcG2GVWiNrrKRia5zDkX9Pb633ntEzsnDW6m7vg6AgqgG-FwJwZZow",
-    // Feliz 2 (Perfil)
-    "https://lh3.googleusercontent.com/aida/ADBb0uhkbTjRmFtHKuQ-3gQePqy2qhYrQY1zAeS3YpfJU9MykUQOTDVFxC43eqgth1LapxXQ9a1elDCTzM4rMCGrRes-9VYjFihMfhOEzVTR4sov6tuUfn-bTZ8l07nRwxJX8chlYgrpkIQLBrHZnnjBEygSgIkFHiFcnM2MizcP1Rj_sBAnYkxRwoub6yUJJ4us92pMITgnFsAj5SjbtqXEefrhXzVFk2YNYE62aqH3yifLAzbnJ4p61-2ESFsBxi4vhBoHwK8NqjuDIw"
-  ];
-  const [mochiFaceIndex, setMochiFaceIndex] = useState(0);
+  const mochiFaces = {
+    neutral: "/Assets/normal.png",
+    happy1: "/Assets/happy_1.png",
+    happy2: "/Assets/happpy_2.png"
+  };
+
+  const [mochiAnimatedFace, setMochiAnimatedFace] = useState(mochiFaces.happy1);
 
   useEffect(() => {
-    const faceInterval = setInterval(() => {
-      setMochiFaceIndex(prev => (prev + 1) % MOCHI_FACES.length);
-    }, 5000);
-    return () => clearInterval(faceInterval);
+    const faces = [mochiFaces.happy1, mochiFaces.happy2, mochiFaces.neutral];
+    let i = 0;
+    const interval = setInterval(() => {
+      i = (i + 1) % faces.length;
+      setMochiAnimatedFace(faces[i]);
+    }, 3000); // Cycle every 3 seconds
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -220,7 +170,6 @@ export function OrganiZenProvider({ children }: { children: React.ReactNode }) {
     }
     
     styleEl.innerHTML = css;
-    
   }, [theme]);
 
   useEffect(() => {
@@ -233,7 +182,6 @@ export function OrganiZenProvider({ children }: { children: React.ReactNode }) {
       setIsTimerRunning(false);
       setTimerSession(s => s + 1);
       if (soundsEnabled) {
-        // Simple beep using Web Audio API as a fallback sound
         try {
           const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
           const oscillator = audioCtx.createOscillator();
@@ -260,65 +208,190 @@ export function OrganiZenProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [isTimerRunning, timerTimeLeft, soundsEnabled, hapticEnabled]);
 
-  const addTask = (task: Omit<Task, 'id' | 'completed'>) => {
-    setTasks(prev => [...prev, { ...task, id: Math.random().toString(), completed: false }]);
+  // Firestore Sync 
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const userRef = doc(db, 'users', auth.currentUser.uid);
+    const unsubSettings = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setThemeState(data.theme ?? 'Predeterminado');
+        setBubbleColorState(data.bubbleColor ?? 'bg-indigo-100');
+        setSoundsEnabled(data.soundsEnabled ?? true);
+        setHapticEnabled(data.hapticEnabled ?? false);
+        setNotificationsEnabled(data.notificationsEnabled ?? true);
+      } else {
+         setDoc(userRef, {
+           theme: 'Predeterminado',
+           bubbleColor: 'bg-indigo-100',
+           soundsEnabled: true,
+           hapticEnabled: false,
+           notificationsEnabled: true,
+           createdAt: serverTimestamp()
+         }).catch(e => handleFirestoreError(e, OperationType.CREATE, `users/${auth.currentUser?.uid}`));
+      }
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${auth.currentUser?.uid}`));
+
+    const tasksRef = collection(db, 'users', auth.currentUser.uid, 'tasks');
+    const q = query(tasksRef);
+    const unsubTasks = onSnapshot(q, (snapshot) => {
+       const loadedTasks: Task[] = [];
+       snapshot.forEach(docSnap => {
+         loadedTasks.push({ id: docSnap.id, ...docSnap.data() } as Task);
+       });
+       setTasks(loadedTasks);
+    }, (err) => handleFirestoreError(err, OperationType.LIST, `users/${auth.currentUser?.uid}/tasks`));
+
+    return () => {
+      unsubSettings();
+      unsubTasks();
+    };
+  }, []);
+
+  const updateSetting = async (key: string, value: any) => {
+    if (!auth.currentUser) return;
+    const userRef = doc(db, 'users', auth.currentUser.uid);
+    try {
+      await updateDoc(userRef, { [key]: value });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `users/${auth.currentUser.uid}`);
+    }
   };
 
-  const completeTask = (id: string) => {
+  const setTheme = (v: string) => updateSetting('theme', v);
+  const setBubbleColor = (v: string) => updateSetting('bubbleColor', v);
+  const setSoundsEnabledDb = (v: boolean) => updateSetting('soundsEnabled', v);
+  const setHapticEnabledDb = (v: boolean) => updateSetting('hapticEnabled', v);
+  const setNotificationsEnabledDb = (v: boolean) => updateSetting('notificationsEnabled', v);
+
+  const addTask = async (task: Omit<Task, 'id' | 'completed'>) => {
+    if (!auth.currentUser) return;
+    const tasksRef = collection(db, 'users', auth.currentUser.uid, 'tasks');
+    const newDocRef = doc(tasksRef);
+    const newTask = {
+        title: task.title || "Nueva Tarea",
+        category: task.category,
+        subtasks: task.subtasks || [],
+        completed: false,
+        createdAt: serverTimestamp()
+    } as any;
+    
+    if (task.subtitle) newTask.subtitle = task.subtitle;
+    if (task.icon) newTask.icon = task.icon;
+    if (task.iconColor) newTask.iconColor = task.iconColor;
+    if (task.timeEstimate) newTask.timeEstimate = task.timeEstimate;
+
+    try {
+      await setDoc(newDocRef, newTask);
+      if (!focusedTaskId) setFocusedTaskId(newDocRef.id);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, `users/${auth.currentUser.uid}/tasks`);
+    }
+  };
+
+  const completeTask = async (id: string) => {
+    if (!auth.currentUser) return;
     if (hapticEnabled && navigator.vibrate) navigator.vibrate(50);
-    setTasks(prev => prev.map(t => {
-      if (t.id === id) {
-        const isNowCompleted = !t.completed;
-        return { 
-          ...t, 
-          completed: isNowCompleted,
-          subtasks: isNowCompleted && t.subtasks 
-            ? t.subtasks.map(s => ({ ...s, completed: true })) 
-            : t.subtasks
-        };
-      }
-      return t;
-    }));
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    
+    const isNowCompleted = !t.completed;
+    const newSubtasks = isNowCompleted && t.subtasks 
+      ? t.subtasks.map(s => ({ ...s, completed: true })) 
+      : t.subtasks || [];
+      
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid, 'tasks', id), {
+        completed: isNowCompleted,
+        subtasks: newSubtasks
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `users/${auth.currentUser.uid}/tasks/${id}`);
+    }
   };
 
-  const replaceSubtasks = (taskId: string, subtaskTitles: string[]) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id === taskId) {
-        return {
-          ...t,
-          subtasks: subtaskTitles.map(title => ({ id: Math.random().toString(), title, completed: false }))
-        };
-      }
-      return t;
-    }));
+  const replaceSubtasks = async (taskId: string, subtaskTitles: string[]) => {
+    if (!auth.currentUser) return;
+    const t = tasks.find(x => x.id === taskId);
+    if (!t) return;
+    
+    const newSubtasks = subtaskTitles.map(title => ({ id: Math.random().toString(), title, completed: false }));
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid, 'tasks', taskId), {
+        subtasks: newSubtasks
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `users/${auth.currentUser.uid}/tasks/${taskId}`);
+    }
   };
 
-  const toggleSubtask = (taskId: string, subtaskId: string) => {
+  const toggleSubtask = async (taskId: string, subtaskId: string) => {
+    if (!auth.currentUser) return;
     if (hapticEnabled && navigator.vibrate) navigator.vibrate(20);
-    setTasks(prev => prev.map(t => {
-      if (t.id === taskId && t.subtasks) {
-        return {
-          ...t,
-          subtasks: t.subtasks.map(s => s.id === subtaskId ? { ...s, completed: !s.completed } : s)
-        };
-      }
-      return t;
-    }));
+    
+    const t = tasks.find(x => x.id === taskId);
+    if (!t || !t.subtasks) return;
+    
+    const newSubtasks = t.subtasks.map(s => s.id === subtaskId ? { ...s, completed: !s.completed } : s);
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid, 'tasks', taskId), {
+        subtasks: newSubtasks
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `users/${auth.currentUser.uid}/tasks/${taskId}`);
+    }
   };
 
-  const addSubtask = (taskId: string, title: string) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id === taskId) {
-        return {
-          ...t,
-          subtasks: [...(t.subtasks || []), { id: Math.random().toString(), title, completed: false }]
-        };
-      }
-      return t;
-    }));
+  const addSubtask = async (taskId: string, title: string) => {
+    if (!auth.currentUser) return;
+    const t = tasks.find(x => x.id === taskId);
+    if (!t) return;
+    
+    const newSubtasks = [...(t.subtasks || []), { id: Math.random().toString(), title, completed: false }];
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid, 'tasks', taskId), {
+        subtasks: newSubtasks
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `users/${auth.currentUser.uid}/tasks/${taskId}`);
+    }
   };
 
-  const mochiFaceUrl = MOCHI_FACES[mochiFaceIndex];
+  // Provide defaults for user when they register
+  const provideDefaultTasks = async () => {
+    if(!auth.currentUser) return;
+    if(tasks.length > 0) return;
+    
+    const defaultData = [
+      {
+        title: 'Limpiar la cocina',
+        subtitle: 'Mantén tu espacio tranquilo',
+        category: 'Ahora' as const,
+        timeEstimate: 15,
+        subtasks: [
+          { id: 's1', title: 'Guardar los platos limpios', completed: false },
+          { id: 's2', title: 'Limpiar la mesa', completed: false },
+          { id: 's3', title: 'Barrer el suelo', completed: false }
+        ]
+      },
+      {
+        title: 'Hacer la cama',
+        subtitle: 'Rutina de mañana',
+        category: 'Hoy' as const,
+        icon: 'bed',
+        iconColor: 'text-primary',
+        timeEstimate: 5
+      }
+    ];
+
+    for (const d of defaultData) {
+      await addTask(d);
+    }
+  };
+
+  // Effect to load defaults once if brand new and tasks load empty
+  // We'll skip for now unless wanted.
 
   return (
     <OrganiZenContext.Provider value={{
@@ -330,14 +403,15 @@ export function OrganiZenProvider({ children }: { children: React.ReactNode }) {
       timerTimeLeft, setTimerTimeLeft,
       isTimerRunning, setIsTimerRunning,
       timerSession,
-      soundsEnabled, setSoundsEnabled,
-      hapticEnabled, setHapticEnabled,
-      notificationsEnabled, setNotificationsEnabled,
+      soundsEnabled, setSoundsEnabled: setSoundsEnabledDb,
+      hapticEnabled, setHapticEnabled: setHapticEnabledDb,
+      notificationsEnabled, setNotificationsEnabled: setNotificationsEnabledDb,
       theme, setTheme,
       bubbleColor, setBubbleColor,
       isChatOpen, setIsChatOpen,
       replaceSubtasks,
-      mochiFaceUrl
+      mochiFaces,
+      mochiAnimatedFace
     }}>
       {children}
     </OrganiZenContext.Provider>

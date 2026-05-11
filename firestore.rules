@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidUser(data) {
+      let isThemeValid = !('theme' in data) || (data.theme is string && data.theme.size() <= 50);
+      let isBubbleValid = !('bubbleColor' in data) || (data.bubbleColor is string && data.bubbleColor.size() <= 50);
+      let isSoundsValid = !('soundsEnabled' in data) || (data.soundsEnabled is bool);
+      let isHapticValid = !('hapticEnabled' in data) || (data.hapticEnabled is bool);
+      let isNotificationsValid = !('notificationsEnabled' in data) || (data.notificationsEnabled is bool);
+      return isThemeValid && isBubbleValid && isSoundsValid && isHapticValid && isNotificationsValid;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId)
+                    && isValidId(userId)
+                    && isValidUser(incoming())
+                    && incoming().keys().hasOnly(['soundsEnabled', 'hapticEnabled', 'notificationsEnabled', 'theme', 'bubbleColor', 'createdAt'])
+                    && ('createdAt' in incoming() ? incoming().createdAt == request.time : true);
+      allow update: if isOwner(userId)
+                    && isValidId(userId)
+                    && isValidUser(incoming())
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['soundsEnabled', 'hapticEnabled', 'notificationsEnabled', 'theme', 'bubbleColor']);
+      allow delete: if isOwner(userId);
+
+      match /tasks/{taskId} {
+        function isValidTask(data) {
+          let hasRequired = data.keys().hasAll(['title', 'category', 'completed']);
+          let validStrings = data.title is string && data.title.size() > 0 && data.title.size() <= 200
+                             && data.category is string && data.category.size() <= 50;
+          let validCompleted = data.completed is bool;
+          let validSubtitle = !('subtitle' in data) || (data.subtitle is string && data.subtitle.size() <= 200);
+          let validIcon = !('icon' in data) || (data.icon is string && data.icon.size() <= 100);
+          let validIconColor = !('iconColor' in data) || (data.iconColor is string && data.iconColor.size() <= 50);
+          let validTime = !('timeEstimate' in data) || (data.timeEstimate is number);
+          let validSubtasks = !('subtasks' in data) || (data.subtasks is list && data.subtasks.size() <= 50);
+          
+          return hasRequired && validStrings && validCompleted && validSubtitle && validIcon && validIconColor && validTime && validSubtasks;
+        }
+
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+                      && isValidId(taskId)
+                      && incoming().keys().hasOnly(['title', 'category', 'subtitle', 'icon', 'iconColor', 'subtasks', 'completed', 'timeEstimate', 'createdAt'])
+                      && isValidTask(incoming())
+                      && (!('createdAt' in incoming()) || incoming().createdAt == request.time);
+                      
+        allow update: if isOwner(userId)
+                      && isValidId(taskId)
+                      && isValidTask(incoming())
+                      && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'category', 'subtitle', 'icon', 'iconColor', 'subtasks', 'completed', 'timeEstimate']);
+        
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

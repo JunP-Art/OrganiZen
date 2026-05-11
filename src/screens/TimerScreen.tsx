@@ -8,7 +8,7 @@ interface TimerScreenProps {
 }
 
 export function TimerScreen({ onComplete, onViewNext }: TimerScreenProps) {
-  const { tasks, focusedTaskId, setFocusedTaskId, timerTimeLeft, setTimerTimeLeft, isTimerRunning, setIsTimerRunning, timerSession, completeTask } = useOrganiZen();
+  const { tasks, focusedTaskId, setFocusedTaskId, timerTimeLeft, setTimerTimeLeft, isTimerRunning, setIsTimerRunning, timerSession, completeTask, mochiFaces } = useOrganiZen();
   
   const [showConfetti, setShowConfetti] = useState(false);
 
@@ -145,7 +145,7 @@ export function TimerScreen({ onComplete, onViewNext }: TimerScreenProps) {
             <div className="relative z-10">
               <div className="w-48 h-48 mx-auto mb-6">
                 <img 
-                  src="https://lh3.googleusercontent.com/aida/ADBb0uhNHSjl0Vvub7voET0s9tWzu9yI94QNVlg4LrrsqaBQVwf-sqpohlliOfyOBSSKxM9cwaQDkEm8xo4v1LEWRASo_OpG0Nl1Qey3Hl3iBskvo1vmnSoyg9D6H1RVSK6cTFBxRAegtSrM4aTE5NiOffLOmMJj41dweOeDWVliOzL2vWOtwBkWnmORM4CreJ82no2pygmgmg0zVjLmTCASGbcG2GVWiNrrKRia5zDkX9Pb633ntEzsnDW6m7vg6AgqgG-FwJwZZow" 
+                  src={mochiFaces.happy2} 
                   alt="Mochi Celebration" 
                   className="w-full h-full object-contain"
                 />

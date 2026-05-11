@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "soundsEnabled": { "type": "boolean" },
+        "hapticEnabled": { "type": "boolean" },
+        "notificationsEnabled": { "type": "boolean" },
+        "theme": { "type": "string" },
+        "bubbleColor": { "type": "string" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A user's task",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "icon": { "type": "string" },
+        "iconColor": { "type": "string" },
+        "subtasks": { "type": "array" },
+        "completed": { "type": "boolean" },
+        "timeEstimate": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["title", "category", "completed"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "User data"
+    },
+    "users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "Task" },
+      "description": "Tasks belonging to the user"
+    }
+  }
+}

@@ -3,7 +3,7 @@ import { cn } from "../lib/utils";
 import { useState } from "react";
 
 export function Header() {
-  const { bubbleColor, mochiFaceUrl } = useOrganiZen();
+  const { bubbleColor, mochiFaces } = useOrganiZen();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -12,7 +12,7 @@ export function Header() {
         <div className="flex items-center gap-3">
           <div className={cn("w-10 h-10 rounded-full border border-white/60 flex items-center justify-center overflow-hidden shadow-sm p-0.5 transition-all duration-500", bubbleColor)}>
             <img 
-              src={mochiFaceUrl} 
+              src={mochiFaces.happy2} 
               alt="Mochi" 
               className="w-full h-full object-cover rounded-full transition-opacity duration-300"
             />
